@@ -1,0 +1,29 @@
+{
+    "name": "Validate.js",
+    "version": "0.0.1",
+    "description": "Validate Library",
+    "main": "app.js",
+    "scripts": {
+        "test": "testing "
+    },
+    "devDependencies": {
+        "grunt": "~0.4.5",
+        "grunt-contrib-jshint": "~0.10.0",
+        "grunt-contrib-nodeunit": "~0.4.1",
+        "grunt-contrib-uglify": "~0.5.0",
+        "grunt-contrib-cssmin": "~0.12.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "test"
+    },
+    "keywords": [
+        "Validate",
+        "validate plain javascript",
+        "validation library"
+    ],
+    "author": "Bala",
+    "license": "foo",
+    "jssrc": "../validate.js",
+    "jsdist": "../validate.min.js"
+}
