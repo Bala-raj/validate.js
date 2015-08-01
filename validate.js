@@ -2,8 +2,8 @@
  *  Validation Helper Singleton object
  * @return {Object} [Will return singleton object for Validate]
  */
+'use strict';
 var validate = (function() {
-    'use strict';
     var instance;
 
     /**
@@ -25,35 +25,35 @@ var validate = (function() {
         ZIP_REGEX = /^[0-9a-zA-Z-\s]+$/;
 
     function Validator(options) {
-        var _options = function() {
-            var valid = "valid",
-                invalid = "invalid";
-
-            this.setValid = function(value) {
-                _setValid(value);
+        var _options = (function() {
+            var valid = 'valid',
+                invalid = 'invalid',
+                event = 'onblur';
+            return {
+                setValid: function(value) {
+                    valid = value;
+                },
+                getValid: function() {
+                    return valid;
+                },
+                setInvalid: function(value) {
+                    invalid = value;
+                },
+                getInvalid: function() {
+                    return invalid;
+                },
+                setEvent: function(value) {
+                    event = value;
+                },
+                getEvent: function() {
+                    return event;
+                }
             };
-
-            function _setValid(value) {
-                valid = value;
-            }
-            this.getValid = function() {
-                return valid;
-            };
-            this.setInvalid = function(value) {
-                _setInvalid(value);
-            };
-
-            function _setInvalid(value) {
-                invalid = value;
-            }
-            this.getInvalid = function() {
-                return invalid;
-            };
-            _createCSSSelector('.mycssclass', 'display:none');
-        };
+        })();
 
         function init() {
             configure(options);
+            _createCSSSelector('.mycssclass', 'display:none');
         }
 
         /**
@@ -102,14 +102,21 @@ var validate = (function() {
             }
             /**
              * [configure - Method to configure valid and invalid class names ]
-             * @param  {[Object]} options = { validClass : "valid" ,invaildClass : "invalid"}
+             * @param  {[Object]} options = { validClass : 'valid' ,invalidClass : 'invalid'}
              * @return {Boolean} return true if it's configured successfully else false.
              */
         function configure(options) {
-                if (!options || !options.validClass || !options.invalidClass) return "Failed";
-                _options.setValid(options.validClass);
-                _options.setInvalid(options.invalidClass);
-                return "Success";
+                try {
+                    if (!options) throw 'Invalid options';
+                    if (!options.validClass) throw 'Required validClass';
+                    if (!options.invalidClass) throw 'Required invalidClass';
+                    _options.setValid(options.validClass);
+                    _options.setInvalid(options.invalidClass);
+                    if (!options.event) _options.setEvent(options.event);
+                    return 'Success';
+                } catch (e) {
+                    return 'Failed : ' + e;
+                }
             }
             /**
              * [creditCardNumber description]
@@ -255,32 +262,32 @@ var validate = (function() {
         }
 
         function page(options) {
-            return _validateProccesor(document, options);
+            return _validateProcessor(document, options);
         }
 
         function _basedOnId(id, options) {
                 try {
-                    if (!id) throw "Form/Div ID required!.";
+                    if (!id) throw 'Form/Div ID required!.';
                     var domObject = document.getElementById(id);
-                    return _validateProccesor(domObject, options);
+                    return _validateProcessor(domObject, options);
                 } catch (e) {
-                    console.error("Exception :", e);
+                    _log(e);
                     return false;
                 }
             }
             /**
-             * [_validateProccesor description]
+             * [_validateProcessor description]
 
              * @param  {[type]} dom     [description]
              * @param  {[type]} options [description]
              * @return {[type]}         [description]
              */
-        function _validateProccesor(dom, options) {
+        function _validateProcessor(dom, options) {
             try {
                 var inputList, valid = true;
                 if (dom) {
                     inputList = _getInputElements(dom);
-                    if (!inputList.length) throw "Not found validation required input fields";
+                    if (!inputList.length) throw 'Not found validation required input fields';
                     for (var ind in inputList) {
                         var domObject = inputList[ind];
                         if (typeof domObject !== 'object') break;
@@ -289,7 +296,7 @@ var validate = (function() {
                 }
                 return valid;
             } catch (e) {
-                console.error("Exception :", e);
+                _log(e);
                 return false;
             }
         }
@@ -309,15 +316,15 @@ var validate = (function() {
 
         function _updateClass(domObject, valid, options) {
             var opt = options || {},
-                validClass = opt.validClass || _options.getValid(),
-                invalidClass = opt.invalidClass || _options.getInvalid();
+                vC = opt.validClass || _options.getValid(),
+                invC = opt.invalidClass || _options.getInvalid();
             if (domObject.classList) {
-                domObject.classList.add(valid ? validClass : invalidClass);
-                domObject.classList.remove(valid ? invalidClass : validClass);
+                domObject.classList.add(valid ? vC : invC);
+                domObject.classList.remove(valid ? invC : vC);
             } else if (domObject.className) {
-                domObject.className = domObject.className.replace(valid ? validClass : invalidClass, '');
-                if (domObject.className.indexOf(valid ? validClass : invalidClass) === -1)
-                    domObject.className += ' ' + valid ? validClass : invalidClass;
+                domObject.className = domObject.className.replace(valid ? vC : invC, '');
+                if (domObject.className.indexOf(valid ? vC : invC) === -1)
+                    domObject.className += ' ' + valid ? vC : invC;
             }
             return valid;
         }
@@ -326,12 +333,83 @@ var validate = (function() {
             var dataset = domObject.dataset || '';
             if (dataset.type && dataset.required && instance.hasOwnProperty(dataset.type)) return instance[dataset.type.toLowerCase()](domObject.value);
             else if (dataset.type && instance.hasOwnProperty(dataset.type)) return domObject.value ? instance[dataset.type.toLowerCase()](domObject.value) : true;
-            else console.error('Invalid Type : ', domObject);
+            else throw 'Invalid Type : ' + domObject.dataset.type + ' Name ' + domObject.name;
+        }
+
+        function _eventProccessor(dom, options, type) {
+            var opt = options || {},
+                eType = opt.event || _options.getEvent();
+            try {
+                var inputList;
+                if (dom) {
+                    inputList = _getInputElements(dom);
+                    for (var ind in inputList) {
+                        var domObject = inputList[ind];
+                        if (typeof domObject !== 'object') break;
+                        _event(domObject, domObject.dataset.event ? domObject.dataset.event : eType, _handler, type, options);
+                    }
+                    return inputList;
+                }
+            } catch (e) {
+                _log(e);
+            }
+        }
+
+        function activate(id, options) {
+            return _activator(id, options);
+        }
+
+        function deactivate(id, options) {
+            return _deactivator(id, options);
+        }
+
+        function _activator(id, options) {
+            if (id) {
+                var dom = document.getElementById(id);
+                _deactivator(id);
+                return _eventProccessor(dom, options, 'attach');
+            } else {
+                _deactivator(document);
+                return _eventProccessor(document, options, 'attach');
+            }
+        }
+
+        function _deactivator(id) {
+            if (id) {
+                var dom = document.getElementById(id);
+                return _eventProccessor(dom, '', 'detach');
+            } else {
+                return _eventProccessor(document, '', 'detach');
+            }
+        }
+
+        function _handler(e) {
+            e = e || window.event;
+            _updateClass(e.target, _isValid(e.target), '');
+        }
+
+        function _event(dom, event, handler, type) {
+            if (dom && event && handler && type) {
+                if (dom.addEventListener) {
+                    if (type === 'attach') dom.addEventListener(event, handler);
+                    if (type === 'detach') dom.removeEventListener(event, handler);
+                } else if (dom.attachEvent) {
+                    if (type === 'attach') dom.attachEvent(event, handler);
+                    if (type === 'detach') dom.detachEvent(event, handler);
+                } else
+                    throw 'Event Listener is not support in your browswer';
+            } else {
+                throw 'DOM/Event/Handler/Type required to bind events';
+            }
+        }
+
+        function _log(e) {
+            console.error('Exception : ', e);
         }
 
         function _createCSSSelector(selector, style) {
             if (!document.styleSheets) return;
-            if (document.getElementsByTagName("head").length === 0) return;
+            if (document.getElementsByTagName('head').length === 0) return;
             var styleSheet, mediaType, i, media;
 
             if (document.styleSheets.length > 0) {
@@ -341,22 +419,22 @@ var validate = (function() {
                     media = document.styleSheets[i].media;
                     mediaType = typeof media;
 
-                    if (mediaType === "string" && (media === "" || (media.indexOf("screen") != -1)))
+                    if (mediaType === 'string' && (media === '' || (media.indexOf('screen') != -1)))
                         styleSheet = document.styleSheets[i];
-                    else if (mediaType == "object" && (media.mediaText === "" || (media.mediaText.indexOf("screen") != -1)))
+                    else if (mediaType == 'object' && (media.mediaText === '' || (media.mediaText.indexOf('screen') != -1)))
                         styleSheet = document.styleSheets[i];
 
-                    if (typeof styleSheet != "undefined") {
+                    if (typeof styleSheet != 'undefined') {
                         break;
                     }
                 }
             }
 
-            if (typeof styleSheet == "undefined") {
-                var styleSheetElement = document.createElement("style");
-                styleSheetElement.type = "text/css";
+            if (typeof styleSheet == 'undefined') {
+                var styleSheetElement = document.createElement('style');
+                styleSheetElement.type = 'text/css';
 
-                document.getElementsByTagName("head")[0].appendChild(styleSheetElement);
+                document.getElementsByTagName('head')[0].appendChild(styleSheetElement);
 
                 for (i = 0; i < document.styleSheets.length; i++) {
                     if (document.styleSheets[i].disabled) {
@@ -369,7 +447,7 @@ var validate = (function() {
                 mediaType = typeof media;
             }
 
-            if (mediaType == "string") {
+            if (mediaType == 'string') {
                 for (i = 0; i < styleSheet.rules.length; i++) {
                     if (styleSheet.rules[i].selectorText && styleSheet.rules[i].selectorText.toLowerCase() == selector.toLowerCase()) {
                         styleSheet.rules[i].style.cssText = style;
@@ -378,7 +456,7 @@ var validate = (function() {
                 }
 
                 styleSheet.addRule(selector, style);
-            } else if (mediaType == "object") {
+            } else if (mediaType == 'object') {
                 var styleSheetLength = (styleSheet.cssRules) ? styleSheet.cssRules.length : 0;
                 for (i = 0; i < styleSheetLength; i++) {
                     if (styleSheet.cssRules[i].selectorText && styleSheet.cssRules[i].selectorText.toLowerCase() == selector.toLowerCase()) {
@@ -387,24 +465,14 @@ var validate = (function() {
                     }
                 }
 
-                styleSheet.insertRule(selector + "{" + style + "}", styleSheetLength);
-            }
-        }
-
-        function _on(event, handler) {
-            if (event && handler) {
-                if (document.addEventListener)
-                    document.addEventListener(event, handler);
-                else if (document.attachEvent)
-                    document.attachEvent(event, handler);
-                else
-                    throw "Event Listener is not support in your browswer";
-            } else {
-                throw "Event and handler required to bind events"
+                styleSheet.insertRule(selector + '{' + style + '}', styleSheetLength);
             }
         }
         var instance = {
 
+            activate: function(id, options) {
+                return activate(id, options);
+            },
             base64: function(value) {
                 return base64(value);
             },
@@ -413,6 +481,9 @@ var validate = (function() {
             },
             configure: function(options) {
                 return configure(options);
+            },
+            deactivate: function(id) {
+                return deactivate(id);
             },
             email: function(value) {
                 return email(value);
